@@ -15,10 +15,9 @@ public class DatabaseConnection {
     private static final Logger LOGGER = Logger.getLogger(DatabaseConnection.class.getName());
     private static final String URL = "jdbc:oracle:thin:@localhost:1521/FREEPDB1";
     private static final String USER = "DICTIONARYUSER";
-    private static final String PASSWORD = "Some467Gwu2";
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        return DriverManager.getConnection(URL, USER, System.getenv("DICTIONARY_PASS"));
     }
 
     public static void initializeDatabase() {
