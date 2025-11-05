@@ -4,13 +4,16 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * The amount of pointless headache and hate the oracle DB has created in me is indescribbel.<br>
- * Like Why Cant you just be normal like MYSQL, Why do you have be so insufferable.
+ * The amount of pointless headache and hate the oracle DB has created in me is indescribable.<br>
+ * Like Why Cant you just be normal like MYSQL, Why do you have to be so insufferable.
  */
 public class DatabaseConnection {
-    private static final String URL = "jdbc:oracle:thin:@localhost:1521:FREE";
+    private static final Logger LOGGER = Logger.getLogger(DatabaseConnection.class.getName());
+    private static final String URL = "jdbc:oracle:thin:@localhost:1521/FREEPDB1";
     private static final String USER = "DICTIONARYUSER";
     private static final String PASSWORD = "Some467Gwu2";
 
@@ -52,8 +55,7 @@ public class DatabaseConnection {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Database initialization error: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database initialization error", e);
             throw new RuntimeException("Failed to initialize database", e);
         }
     }
@@ -62,7 +64,7 @@ public class DatabaseConnection {
         try (Connection conn = getConnection()) {
             return conn != null && !conn.isClosed();
         } catch (SQLException e) {
-            System.err.println("Database connection test failed: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Database connection test failed", e);
             return false;
         }
     }
