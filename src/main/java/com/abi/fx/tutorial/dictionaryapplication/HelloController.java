@@ -1,7 +1,5 @@
 package com.abi.fx.tutorial.dictionaryapplication;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
@@ -27,7 +25,18 @@ public class HelloController {
 
         wordListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
-                definitionArea.setText(newVal.getDefinition());
+                // Display all definitions with numbering if there are multiple
+                if (newVal.getDefinitions().size() > 1) {
+                    StringBuilder allDefinitions = new StringBuilder();
+                    int count = 1;
+                    for (String def : newVal.getDefinitions()) {
+                        allDefinitions.append(count).append(". ").append(def).append("\n\n");
+                        count++;
+                    }
+                    definitionArea.setText(allDefinitions.toString().trim());
+                } else {
+                    definitionArea.setText(newVal.getDefinition());
+                }
             }
         });
 
