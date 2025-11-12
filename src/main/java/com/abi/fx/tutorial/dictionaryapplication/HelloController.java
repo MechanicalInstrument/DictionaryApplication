@@ -1,15 +1,21 @@
 package com.abi.fx.tutorial.dictionaryapplication;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 
 import java.sql.SQLException;
 import java.util.Optional;
 
 public class HelloController {
     @FXML
-    private ListView<Word> wordListView;
+    private ListView<Object> wordListView;
     @FXML
     private TextField searchField;
     @FXML
@@ -21,21 +27,51 @@ public class HelloController {
 
     @FXML
     public void initialize() {
+        // Set up custom cell factory for rendering sections and words
+        wordListView.setCellFactory(param -> new ListCell<Object>() {
+            @Override
+            protected void updateItem(Object item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else if (item instanceof SectionHeader) {
+                    // Style section headers
+                    SectionHeader header = (SectionHeader) item;
+                    Label headerLabel = new Label(header.letter());
+                    headerLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+                    headerLabel.setTextFill(Color.web("#1f3a93"));
+                    headerLabel.setPadding(new Insets(10, 5, 5, 5));
+
+                    setGraphic(headerLabel);
+                    setText(null);
+                    setStyle("-fx-background-color: #f0f0f0;");
+                } else if (item instanceof Word) {
+                    // Style regular word items
+                    Word word = (Word) item;
+                    setText(word.getTerm());
+                    setGraphic(null);
+                    setStyle("");
+                }
+            }
+        });
+
         loadWords();
 
         wordListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) {
+            if (newVal != null && newVal instanceof Word) {
+                Word word = (Word) newVal;
                 // Display all definitions with numbering if there are multiple
-                if (newVal.getDefinitions().size() > 1) {
+                if (word.getDefinitions().size() > 1) {
                     StringBuilder allDefinitions = new StringBuilder();
                     int count = 1;
-                    for (String def : newVal.getDefinitions()) {
+                    for (String def : word.getDefinitions()) {
                         allDefinitions.append(count).append(". ").append(def).append("\n\n");
                         count++;
                     }
                     definitionArea.setText(allDefinitions.toString().trim());
                 } else {
-                    definitionArea.setText(newVal.getDefinition());
+                    definitionArea.setText(word.getDefinition());
                 }
             }
         });
@@ -43,9 +79,9 @@ public class HelloController {
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
             try {
                 if (newVal == null || newVal.isEmpty()) {
-                    wordListView.setItems(Word.getAllWords());
+                    loadWords();
                 } else {
-                    wordListView.setItems(Word.searchWords(newVal));
+                    loadSearchResults(Word.searchWords(newVal));
                 }
             } catch (SQLException e) {
                 showError("Search Error", "Failed to search for words: " + e.getMessage());
@@ -55,10 +91,41 @@ public class HelloController {
 
     private void loadWords() {
         try {
-            wordListView.setItems(Word.getAllWords());
+            ObservableList<Word> allWords = Word.getAllWords();
+            ObservableList<Object> organizedItems = organizeWordsWithSections(allWords);
+            wordListView.setItems(organizedItems);
         } catch (SQLException e) {
             showError("Loading Error", "Failed to load dictionary words: " + e.getMessage());
         }
+    }
+
+    private void loadSearchResults(ObservableList<Word> searchResults) {
+        ObservableList<Object> organizedItems = organizeWordsWithSections(searchResults);
+        wordListView.setItems(organizedItems);
+    }
+
+    /**
+     * Organizes words with alphabetical section headers
+     * Example: [SectionHeader("A"), Word("apple"), Word("apricot"), SectionHeader("B"), Word("banana")]
+     */
+    private ObservableList<Object> organizeWordsWithSections(ObservableList<Word> words) {
+        ObservableList<Object> organizedList = FXCollections.observableArrayList();
+        String currentSection = "";
+
+        for (Word word : words) {
+            String firstLetter = word.getTerm().substring(0, 1).toUpperCase();
+
+            // Add section header if letter changes
+            if (!firstLetter.equals(currentSection)) {
+                organizedList.add(new SectionHeader(firstLetter));
+                currentSection = firstLetter;
+            }
+
+            // Add the word
+            organizedList.add(word);
+        }
+
+        return organizedList;
     }
 
     @FXML
@@ -97,8 +164,9 @@ public class HelloController {
 
     @FXML
     protected void onRemoveButtonClick() {
-        Word selectedWord = wordListView.getSelectionModel().getSelectedItem();
-        if (selectedWord != null) {
+        Object selectedItem = wordListView.getSelectionModel().getSelectedItem();
+        if (selectedItem != null && selectedItem instanceof Word) {
+            Word selectedWord = (Word) selectedItem;
             try {
                 selectedWord.delete();
                 loadWords(); // Refresh the list
@@ -106,6 +174,8 @@ public class HelloController {
             } catch (SQLException e) {
                 showError("Delete Error", "Failed to delete the word: " + e.getMessage());
             }
+        } else {
+            showError("Delete Error", "Please select a word to delete");
         }
     }
 
